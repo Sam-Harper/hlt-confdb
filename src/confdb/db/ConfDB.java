@@ -402,6 +402,15 @@ public class ConfDB {
 
 	// bug #91797: ConfDB operator IGNORE/NEGATE also for modules in a sequence.
 	private PreparedStatement psCheckOperatorForModuleSequenceAssoc = null;
+	private PreparedStatement psCheckOperatorForModuleTaskAssoc = null;
+
+	private PreparedStatement psInsertTaskPaeType = null;
+	private PreparedStatement psGetPaeTypes = null;
+	private PreparedStatement psGetPaeColumnNumber = null;
+	private PreparedStatement psGetConf2Pae = null;
+	private PreparedStatement psGetPath2Pae = null;
+	private PreparedStatement psGetPaelements = null;
+
 
 	private ArrayList<PreparedStatement> preparedStatements = new ArrayList<PreparedStatement>();
 
@@ -1182,7 +1191,18 @@ public class ConfDB {
 			psSelectInstances.setInt(8, configId);
 			psSelectInstances.setInt(9, configId);
 			psSelectInstances.setInt(10, configId);
+<<<<<<< HEAD
 			rsInstances = psSelectInstances.executeQuery();
+=======
+			psSelectInstances.setInt(11, configId); // Tasks
+			psSelectInstances.setInt(12, configId); // Tasks
+			rsInstances = psSelectInstances.executeQuery();
+
+			/*
+			 * if (pera) return;
+			 */
+
+>>>>>>> Initial task commit
 			psSelectPathEntries.setInt(1, configId);
 			psSelectPathEntries.setInt(2, configId);
 			// System.err.println("Trying Pathentries"+configId);
