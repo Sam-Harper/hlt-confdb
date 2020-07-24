@@ -1691,6 +1691,7 @@ public class ConfDbGUI {
 	/** set the current configuration */
 	private void setCurrentConfig(Configuration config) {
 		TreePath tp = jTreeCurrentConfig.getSelectionPath();
+		System.out.println("***** CONFIG ***** " + config);
 		currentConfig = config;
 		treeModelCurrentConfig.setConfiguration(currentConfig);
 
@@ -2465,7 +2466,7 @@ public class ConfDbGUI {
 
 		// parameter table
 		treeModelParameters = new ParameterTreeModel(currentConfig);
-		jTreeTableParameters = new TreeTable(treeModelParameters);
+		jTreeTableParameters = new TreeTable(treeModelParameters, currentConfig);
 		jTreeTableParameters.setTreeCellRenderer(new ParameterTreeCellRenderer());
 
 		jTreeTableParameters.getColumnModel().getColumn(0).setPreferredWidth(120);
@@ -2922,7 +2923,8 @@ public class ConfDbGUI {
 		toolBar.disableAddUntrackedParameter();
 
 		treeModelParameters.setConfiguration(currentConfig);
-
+		jTreeTableParameters.setConfiguration(currentConfig);
+		
 		ParameterContainer container = null;
 
 		if (currentParameterContainer instanceof ParameterContainer) {
@@ -2935,6 +2937,9 @@ public class ConfDbGUI {
 			jSplitPaneRightUpper.setDividerLocation(-1);
 			jSplitPaneRightUpper.setDividerSize(8);
 
+			boolean sss = container instanceof EDAliasInstance;
+			System.out.println("container instanceof EDAliasInstance: " + sss);
+			System.out.println("CONTAINER CLASS: " + container.getClass());
 			if (container instanceof Instance && !(container instanceof EDAliasInstance)) {
 				Instance i = (Instance) container;
 				String subName = i.template().parentPackage().subsystem().name();
@@ -2947,9 +2952,7 @@ public class ConfDbGUI {
 				jTextFieldCVS.setText(cvsTag);
 				jLabelPlugin.setText(type + ":");
 				jTextFieldPlugin.setText(plugin);
-
 			} else {
-				System.out.println("EDALIAS PARAMETER CONTAINER");
 				jTextFieldPackage.setText(new String());
 				jTextFieldCVS.setText(new String());
 				jLabelPlugin.setText(new String());
@@ -3143,8 +3146,8 @@ public class ConfDbGUI {
 
 			ModuleInstance module = (ModuleInstance) currentParameterContainer;
 			try {
-				System.out.println("MODULE SNIPPET CREATION");
-				System.out.println("cnvEngine " + cnvEngine.getModuleWriter().getClass().toString());
+				//System.out.println("MODULE SNIPPET CREATION");
+				//System.out.println("cnvEngine " + cnvEngine.getModuleWriter().getClass().toString());
 				jEditorPaneSnippet.setText(cnvEngine.getModuleWriter().toString(module));
 			} catch (ConverterException e) {
 				jEditorPaneSnippet.setText(e.getMessage());
@@ -3162,8 +3165,8 @@ public class ConfDbGUI {
 
 			EDAliasInstance edAlias = (EDAliasInstance) currentParameterContainer;
 			try {
-				System.out.println("EDALIAS SNIPPET CREATION");
-				System.out.println("cnvEngine " + cnvEngine.getEDAliasWriter().getClass().toString());
+				//System.out.println("EDALIAS SNIPPET CREATION");
+				//System.out.println("cnvEngine " + cnvEngine.getEDAliasWriter().getClass().toString());
 				jEditorPaneSnippet.setText(cnvEngine.getEDAliasWriter().toString(edAlias));
 			} catch (ConverterException e) {
 				jEditorPaneSnippet.setText(e.getMessage());
