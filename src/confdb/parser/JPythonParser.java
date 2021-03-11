@@ -161,6 +161,11 @@ public class JPythonParser
             pyCmd("import sys");
             pyCmd("sys.path.append('"+path+"')");   // add the .py file's path
             pyCmd("import pycimport");              // load bytecode .pyc files if available
+	    pyCmd("import os");
+	    pyCmd("sys.path.extend(os.environ['PYTHON27PATH'].split(':'))");
+	    pyCmd("sys.path.append('/cvmfs/cms.cern.ch/slc7_amd64_gcc820/external/py2-six/1.15.0/lib/python2.7/site-packages')");
+	    pyCmd("sys.path.append('/cvmfs/cms.cern.ch/slc7_amd64_gcc820/external/py2-future/0.18.2-bcolbf2/lib/python2.7/site-packages')");
+	    //  pyCmd("sys.path.append('/home/sharper/hlt-confdb-switch/python')");
             pyCmd("print sys.path");
 
             /////////////////////////////////////////////////////////
@@ -182,10 +187,11 @@ public class JPythonParser
             ConfigInfo configInfo = new ConfigInfo(name, null,-1, 0,"","",
                     release.releaseTag(), processName,
                     "parsed from "+fileName);
-
+	    System.out.println("configInfo "+processName);
             // new configuration
             configuration = new Configuration();
             configuration.initialize(configInfo, release);
+	    System.out.println("initialised "+processName);
 
         }
         catch (Exception e) {
@@ -296,7 +302,8 @@ public class JPythonParser
     
     // parse EDAliases:
     private void parseEDAliases(PyObject process) {
-        PyDictionary edAliases = (PyDictionary) process.__getattr__("_Process__edaliases");
+	System.out.println("ed alias");
+        PyDictionary edAliases = (PyDictionary) process.__getattr__("_Process__aliases");
         if (validPyObject(edAliases))
             parseEDAliasMap(edAliases, "EDAliases");
     }
@@ -404,11 +411,13 @@ public class JPythonParser
     //      - outputCommand: definition of the EventContent.
     //      - SelectEvent: definition of the Stream.
     // TODO: What to do if we generate extra things when parsing streams?
-    private boolean parseModule(PyObject moduleObject) {
+    private boolean parseModule(PyObject moduleObject,String label) {
 
         String type  = getType(moduleObject);
-        String label = getLabel(moduleObject);
 
+	if(label==""){
+	    label = getLabel(moduleObject);
+	}
         if (type == "OutputModule") {
             OutputModule module = configuration.output(label);
 
@@ -445,14 +454,20 @@ public class JPythonParser
 
         return true;
     }
+    private boolean parseModule(PyObject moduleObject) {
+	return parseModule(moduleObject,getLabel(moduleObject));
+    }
     
     // Parse one single edAlias
     private boolean parseEDAlias(PyObject edAliasObject) {
+	String label = getLabel(edAliasObject);
+	return parseEDAlias(edAliasObject,label);
+    }
+    private boolean parseEDAlias(PyObject edAliasObject,String label) {
 
         String type  = getType(edAliasObject);
-        String label = getLabel(edAliasObject);
 
-        if (type == "EDAlias") {
+        if (type == "EDAliasdd") {
             EDAliasInstance edAlias = configuration.edAlias(label);
 
             if (edAlias != null) {
@@ -463,7 +478,7 @@ public class JPythonParser
                 PyDictionary parameterContainerObject = (PyDictionary) edAliasObject.invoke("parameters_");
                 updateEDAliasParameters(parameterContainerObject, edAlias);
             }
-        } else if (type == "GEDAlias") {
+        } else if (type == "EDAlias") {
             EDAliasInstance globalEDAlias = configuration.globalEDAlias(label);
 
             if (globalEDAlias != null) {
@@ -471,8 +486,12 @@ public class JPythonParser
                 updateEDAliasParameters(parameterContainerObject, globalEDAlias);
             } else {
             	globalEDAlias = configuration.insertGlobalEDAlias(label);
-                PyDictionary parameterContainerObject = (PyDictionary) edAliasObject.invoke("parameters_");
-                updateEDAliasParameters(parameterContainerObject, globalEDAlias);
+		ArrayList<confdb.data.Parameter> params = parsePSetParameters(edAliasObject);
+		for (int It = 0; It < params.size(); It++)
+		    globalEDAlias.addParameter(params.get(It));
+	    
+		     //                PyDictionary parameterContainerObject = (PyDictionary) edAliasObject.invoke("parameters_");
+		     //updateEDAliasParameters(parameterContainerObject, globalEDAlias);
             }
         }
 
@@ -638,7 +657,6 @@ public class JPythonParser
     // Parse Paths:
     private void parsePathsFromPython(PyObject pyprocess){
         PyDictionary paths = (PyDictionary) pyprocess.__getattr__("_Process__paths");
-
         if (validPyObject(paths))
             parsePathMap(paths);
     }
@@ -656,10 +674,11 @@ public class JPythonParser
         PyList keys = (PyList) pydict.invoke("keys");
         for (Object key : keys) {
             String pathName = (String) key;
-            //System.out.println("Path: " + key);
+            System.out.println("Path: " + key);
             Path path = configuration.insertPath(configuration.pathCount(), pathName);
             PyObject value = pydict.__getitem__(new PyString((String) key));
             parsePath(value);
+	    System.out.println("Path: " + key+" parsed");
         }
         return true;
     }
@@ -692,9 +711,9 @@ public class JPythonParser
                 alert(msg.err, "[parsePath] path does not exist!" + label);
 
             // Content:
-            PyObject pathContent = object.__getattr__(new PyString("_seq"));
-            parseReferenceContainerContent(pathContent, insertedPath);
-
+	    System.out.println("parsing Path " + label);
+            parseReferenceContainerContent(object, insertedPath);
+	    System.out.println("parsed Path: " + label);
         } else if (confdbTypes.endPath.is(type)){
             insertedPath = configuration.path(label);
 
@@ -702,8 +721,7 @@ public class JPythonParser
                 alert(msg.err, "[parsePath] path does not exist!" + label);
 
             // Content:
-            PyObject pathContent = object.__getattr__(new PyString("_seq"));
-            parseReferenceContainerContent(pathContent, insertedPath);
+            parseReferenceContainerContent(object, insertedPath);
 
         } else alert(msg.err, "[parsePath] type Unknow " + type);
     }
@@ -721,6 +739,7 @@ public class JPythonParser
     {
         for (Object parameterObject : parameterContainer.entrySet()) {
             PyDictionary.Entry<String, PyObject> entry = (PyDictionary.Entry<String, PyObject>) parameterObject;
+	    System.out.println("edalias "+entry.getKey()+" "+entry.getValue());
             parseParameter(entry.getKey(), entry.getValue(), edAlias);
         }
 
@@ -749,7 +768,8 @@ public class JPythonParser
             params.add(param);
         }
         return params;
-    }
+    } 
+
 
     // NOTE: Streams come as PSets from python.
     // Streams are inserted previously using the OutputModule definition.
@@ -1184,7 +1204,7 @@ public class JPythonParser
             }
 
             // add the Sequence's elements
-            parseReferenceContainerContent(object.__getattr__("_seq"), insertedSeq);
+            parseReferenceContainerContent(object, insertedSeq);
 
         } else alert(msg.err, "[parseSequence] expected Sequence, got type " + type);
 
@@ -1193,12 +1213,32 @@ public class JPythonParser
 
     // Parse sequence/path content:
     private void parseReferenceContainerContent(PyObject sequenceContent, confdb.data.ReferenceContainer parentContainer) {
-        PyList collection = (PyList) sequenceContent.__getattr__("_collection"); 
+	PyObject sequenceColl;
+	if(sequenceContent.__findattr__("_seq")!=null){
+	    sequenceColl = sequenceContent.__getattr__("_seq");
+	}else{
+	    sequenceColl = sequenceContent;
+	}
+	PyList collection = new PyList();
+	if(sequenceColl.__findattr__("_collection")!=null){
+	    //	    collection.addAll((PyList) sequenceColl.__getattr__("_collection"));
+	    collection.extend(sequenceColl.__getattr__("_collection"));
+	}
+	System.out.println("got coll ");
+	if(sequenceColl.__findattr__("_tasks")!=null){
+	    collection.extend(sequenceContent.__getattr__("_tasks"));
+	}
+	System.out.println("got tasks ");
+        if (pythonObjects.switchProducer.is(getType(sequenceContent))){
+	   System.out.println("ERROR should not be SP here ");
+	}
+	
+
         for (Object object: collection) {
             PyObject element = (PyObject) object;
             String type  = getType(element);
             String label = getLabel(element);
-
+	    System.out.println("type obj "+type+" parent type "+getType(sequenceContent));
             if (pythonObjects.sequence.is(type))
             // Sequence
             {
@@ -1285,6 +1325,74 @@ public class JPythonParser
         }
     }
 
+    private String switchProducerComponentName(PyObject switchProd,String component ){
+	String spName = getLabel(switchProd);
+	return spName+"_"+component;
+    }
+	
+    // switch producers are sigificantly different than Tasks, Sequences, Paths
+    // such that even though they are treated like a sequence in confdb, they
+    // have to parsed seperately
+    // this is because they have aliases and producers not directly process object    
+    private void parseSwitchProducerContent(PyObject switchProducer, confdb.data.ReferenceContainer parentContainer) {
+
+	PyDictionary collection = new PyDictionary();
+        if (pythonObjects.switchProducer.is(getType(switchProducer))){
+	    PyObject paraNamesFunc = switchProducer.__getattr__("parameterNames_");
+	    PyList paraNames = (PyList) paraNamesFunc.__call__();
+	  	
+
+	    for(Object name : paraNames){	
+		String nameStr = (String) name;
+		System.out.println("sp adding "+nameStr);
+		PyObject module = switchProducer.__getattr__(nameStr);
+		String fullName = switchProducerComponentName(switchProducer,nameStr);
+		String type  = getType(module);
+		if (pythonObjects.EDProducer.is(type)) {
+		    parseModule(module,fullName);
+		}else if(pythonObjects.EDAlias.is(type)){
+		    parseEDAlias(module,fullName);
+		}
+		collection.put(fullName, module);		
+	    }
+	}
+	
+
+        for (Object key: collection.keys()) {
+	    System.out.println("stating loop");
+	    String label = (String) key;
+	    PyObject element = (PyObject) collection.get(label);
+            String type  = getType(element);
+	    System.out.println("now about to "+label+" "+type);
+            if (pythonObjects.EDProducer.is(type))
+            {
+                ModuleInstance module = configuration.module(label);
+                if (module == null) {
+                    alert(msg.err, "[parseSequenceImpl] " + type + " " + label + " not found!");
+                    continue;
+                }
+		System.out.println("mod name "+module.name());
+                Reference reference = parentContainer.entry(module.name());
+                if (reference == null)
+                    reference = configuration.insertModuleReference(parentContainer, parentContainer.entryCount(), module);
+            }            
+            else if (pythonObjects.EDAlias.is(type))
+            {
+		EDAliasInstance alias = configuration.globalEDAlias(label);
+		if (alias == null) {
+                    alert(msg.err, "[parseSwitchProducerImpl] " + type + " " + label + " not found!");
+                    continue;
+                }
+		Reference reference = parentContainer.entry(alias.name());
+                if (reference == null)
+                    reference = configuration.insertEDAliasReference(parentContainer, parentContainer.entryCount(), alias);
+            } else {
+                alert(msg.err, "[parseSwitchProducerImpl] unexpected object of type " + type + " and label " + label + " on SwitchProducer");
+            }
+        }
+    }
+
+
     // Return the recently inserted sequence to be linked to the parent seq/container.
     private confdb.data.Sequence parseSequenceOnDemand(String label) {
         PyDictionary sequences = (PyDictionary) process.__getattr__("_Process__sequences");
@@ -1325,8 +1433,9 @@ public class JPythonParser
             }
 
             // add the Sequence's elements
-            parseReferenceContainerContent(object.__getattr__("_seq"), insertedTas);
-
+	    System.out.println(" parsing task");
+            parseReferenceContainerContent(object, insertedTas);
+	    System.out.println(" parsed task");
         } else alert(msg.err, "[parseTask] expected Task, got type " + type);
 
         return insertedTas;
@@ -1341,13 +1450,14 @@ public class JPythonParser
     }
     
     private void parseSwitchProducersMap(PyDictionary pydict) {
-        alert(msg.inf, " Tasks (" + pydict.size() + ")");
+        alert(msg.inf, " SwitchProducers (" + pydict.size() + ")");
         PyList keys = (PyList) pydict.invoke("keys");
 
         for (Object key : keys) {
             String switchProducerName = (String) key;
-
+	    System.out.println(" sp "+switchProducerName);
             confdb.data.SwitchProducer sp = configuration.switchProducer(switchProducerName);
+	    System.out.println(" sp "+switchProducerName+" "+sp==null);
             if (sp == null) {
                 PyObject value = pydict.__getitem__(new PyString((String) key)); // Get the SP Python Object.
                 parseSwitchProducer(value);   // Parse it and insert the SwitchProducer. Recursively
@@ -1359,7 +1469,7 @@ public class JPythonParser
     private confdb.data.SwitchProducer parseSwitchProducer(PyObject object) {
         String type  = getType(object);
         String label = getLabel(object);
-        //System.out.println("[parseTask] " + type + " " + label);
+        System.out.println("[parseSP] " + type + " " + label);
         confdb.data.SwitchProducer insertedSwitchProducer = null;
 
         if (confdbTypes.switchProducer.is(type)) {
@@ -1372,7 +1482,9 @@ public class JPythonParser
             }
 
             // add the SwitchProducer's elements
-            parseReferenceContainerContent(object.__getattr__("_seq"), insertedSwitchProducer);
+	    System.out.println("parse sp ref");
+            parseSwitchProducerContent(object, insertedSwitchProducer);
+	    System.out.println("parse sp ref done");
 
         } else alert(msg.err, "[parseSwitchProducer] expected SwitchProducer, got type " + type);
 
@@ -1396,7 +1508,7 @@ public class JPythonParser
 
             alert(msg.err, "[validPyObject] Object of type = " + type + ", label = " + label + " does not exist in this Config.");
         }
-
+	alert(msg.err, "[validPyObject] Object of type = " + type + ", label = " + label + " does exist in this Config.");
         return validObject;
     }
 
@@ -1487,8 +1599,8 @@ public class JPythonParser
 
     public enum confdbTypes {
         sequence("Sequence"),
-        task("Sequence"),
-        switchProducer("SwitchProducer"),
+        task("Task"), //not strickly a confdb type, see if this causes issues
+        switchProducer("SwitchProducerCUDA"),
         path("Path"),
         endPath("EndPath"),
         module("Module");
@@ -1577,7 +1689,8 @@ public class JPythonParser
         seqIgnore("_SequenceIgnore"),
         seqOpAids("_SequenceOpAids"),
         task("Task"),
-        switchProducer("SwitchProducer"),
+        switchProducer("SwitchProducerCUDA"),
+	EDAlias("EDAlias"),
         EDProducer("EDProducer"),
         EDFilter("EDFilter"),
         EDAnalyzer("EDAnalyzer"),
