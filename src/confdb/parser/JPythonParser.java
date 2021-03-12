@@ -467,7 +467,7 @@ public class JPythonParser
 
         String type  = getType(edAliasObject);
 
-        if (type == "EDAliasdd") {
+        if (type == "EDAlias") {
             EDAliasInstance edAlias = configuration.edAlias(label);
 
             if (edAlias != null) {
@@ -475,10 +475,13 @@ public class JPythonParser
                 updateEDAliasParameters(parameterContainerObject, edAlias);
             } else {
                 edAlias = configuration.insertEDAlias(label);
-                PyDictionary parameterContainerObject = (PyDictionary) edAliasObject.invoke("parameters_");
-                updateEDAliasParameters(parameterContainerObject, edAlias);
+                //PyDictionary parameterContainerObject = (PyDictionary) edAliasObject.invoke("parameters_");
+                //updateEDAliasParameters(parameterContainerObject, edAlias);
+		ArrayList<confdb.data.Parameter> params = parsePSetParameters(edAliasObject);
+		for (int It = 0; It < params.size(); It++)
+		    edAlias.addParameter(params.get(It));
             }
-        } else if (type == "EDAlias") {
+        } else if (type == "EDAlias00") {
             EDAliasInstance globalEDAlias = configuration.globalEDAlias(label);
 
             if (globalEDAlias != null) {
@@ -1225,10 +1228,13 @@ public class JPythonParser
 	    collection.extend(sequenceColl.__getattr__("_collection"));
 	}
 	System.out.println("got coll ");
-	if(sequenceColl.__findattr__("_tasks")!=null){
+	//this is mostly  specific to paths
+	if(sequenceContent.__findattr__("_tasks")!=null){
+	    System.out.println("adding tasks ");
 	    collection.extend(sequenceContent.__getattr__("_tasks"));
+	    System.out.println("added tasks ");
 	}
-	System.out.println("got tasks ");
+
         if (pythonObjects.switchProducer.is(getType(sequenceContent))){
 	   System.out.println("ERROR should not be SP here ");
 	}
@@ -1378,11 +1384,12 @@ public class JPythonParser
             }            
             else if (pythonObjects.EDAlias.is(type))
             {
-		EDAliasInstance alias = configuration.globalEDAlias(label);
+		EDAliasInstance alias = configuration.edAlias(label);
 		if (alias == null) {
                     alert(msg.err, "[parseSwitchProducerImpl] " + type + " " + label + " not found!");
                     continue;
                 }
+		System.out.println("inserting ref "+alias.name());
 		Reference reference = parentContainer.entry(alias.name());
                 if (reference == null)
                     reference = configuration.insertEDAliasReference(parentContainer, parentContainer.entryCount(), alias);
