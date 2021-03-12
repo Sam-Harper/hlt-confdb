@@ -22,7 +22,6 @@ public class ConverterBase
 	
     public ConverterBase( String format, Connection connection ) throws ConverterException
     {   
-        System.out.println("correct confdb!!!!");
     	database = new ConfDB();
     	try {
     		database.connect( connection );
@@ -35,13 +34,11 @@ public class ConverterBase
     public ConverterBase( String format, String dbType, String dbUrl, String dbUser, String dbPwrd ) throws ConverterException
     {       
     	this( format );
-	System.out.println("correct confdb!!!!");
     	initDB( dbType, dbUrl, dbUser, dbPwrd );
     }
   
     protected ConverterBase( String format ) throws ConverterException
     {     
-	System.out.println("correct confdb!!!!");
 		try {
 			converterEngine = ConverterFactory.getConverterEngine( format );
 		} catch (Exception e) {
@@ -77,7 +74,6 @@ public class ConverterBase
 
     public IConfiguration getConfiguration( int key ) throws ConverterException
     {
-	System.out.println("config key "+key);
     	try {
 			return ConfCache.getCache().getConfiguration( key, getDatabase() );
 		} catch (DatabaseException e) {
