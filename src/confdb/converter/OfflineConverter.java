@@ -245,15 +245,12 @@ public class OfflineConverter extends ConverterBase
 	    OfflineConverter cnv = 
 		new OfflineConverter(format,dbType,dbUrl,dbUser,dbPwrd);
 	    configId="";
-	    System.out.println("configId length "+configId.length()+" "+configId);
 	    if (configId.length()>0){
-		System.out.println("configId "+configId);
 		System.out.println(cnv.getConfigString(Integer.parseInt(configId),
 						       format,
 						       modifications,
 						       asFragment));
 	    }else{
-		System.out.println("configName "+configName);
 		System.out.println(cnv.getConfigString(configName,
 						       format,
 						       modifications,
