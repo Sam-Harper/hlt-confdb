@@ -46,6 +46,10 @@ public class PythonConfigurationWriter implements IConfigurationWriter {
 				+ converterEngine.getNewline());
 
 		str.append("import FWCore.ParameterSet.Config as cms\n\n");
+		if(conf.switchProducerCount() > 0) {
+		    str.append("from HeterogeneousCore.CUDACore.SwitchProducerCUDA import SwitchProducerCUDA\n\n");
+		}
+
 
 		String object = "";
 		if (writeProcess == WriteProcess.YES) {
