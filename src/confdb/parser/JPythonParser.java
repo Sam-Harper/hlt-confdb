@@ -160,12 +160,7 @@ public class JPythonParser
             pyCmd("import sys");
             pyCmd("sys.path.append('"+path+"')");   // add the .py file's path
             pyCmd("import pycimport");              // load bytecode .pyc files if available
-	    pyCmd("import os");
-	    pyCmd("sys.path.extend(os.environ['PYTHON27PATH'].split(':'))");
-	    pyCmd("sys.path.append('/cvmfs/cms.cern.ch/slc7_amd64_gcc820/external/py2-six/1.15.0/lib/python2.7/site-packages')");
-	    pyCmd("sys.path.append('/cvmfs/cms.cern.ch/slc7_amd64_gcc820/external/py2-future/0.18.2-bcolbf2/lib/python2.7/site-packages')");
-	    //  pyCmd("sys.path.append('/home/sharper/hlt-confdb-switch/python')");
-            pyCmd("print sys.path");
+	    pyCmd("sys.path.append('python')");
 
             /////////////////////////////////////////////////////////
 
