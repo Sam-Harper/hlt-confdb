@@ -4309,7 +4309,6 @@ public class ConfDB {
 
 	public synchronized int getConfigId(String fullConfigName) throws DatabaseException {
 		int newId = getConfigNewId(fullConfigName);
-	        System.out.println("getConfigId : " + fullConfigName + " newId " + newId );
 
 		reconnect();
 
@@ -4320,7 +4319,6 @@ public class ConfDB {
 			psSelectOrigDbId.setInt(1, newId);
 			rs = psSelectOrigDbId.executeQuery();
 			while (rs.next()) {
-			    System.out.println("getting id "+rs.getInt(1));
 				oldId = rs.getInt(1);
 			}
 			;
@@ -7241,10 +7239,8 @@ public class ConfDB {
 
 	/** look for ConfigInfo in the specified parent directory */
 	private ConfigInfo getConfigNewInfo(int configId, Directory parentDir) {
-	    System.out.println("ID "+configId+" dir "+parentDir.name());
 		for (int i = 0; i < parentDir.configInfoCount(); i++) {
 			ConfigInfo configInfo = parentDir.configInfo(i);
-			System.out.println("config name "+configInfo.name());
 			for (int ii = 0; ii < configInfo.versionCount(); ii++) {
 				ConfigVersion configVersion = configInfo.version(ii);
 				if (configVersion.dbId() == configId) {
