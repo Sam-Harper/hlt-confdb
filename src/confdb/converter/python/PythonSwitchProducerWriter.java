@@ -13,7 +13,7 @@ import confdb.data.SwitchProducer;
 
 public class PythonSwitchProducerWriter implements ISwitchProducerWriter {
 	public String toString(SwitchProducer switchProducer, ConverterEngine converterEngine, String object) {
-	        String str = object + switchProducer.name() + " = CUDASwitchProducer(\n ";
+	        String str = object + switchProducer.name() + " = SwitchProducerCUDA(\n ";
 		String indent = "   ";
 	    
 		if (switchProducer.entryCount() > 0) {
