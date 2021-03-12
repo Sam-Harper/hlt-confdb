@@ -23,21 +23,18 @@ public class PythonSwitchProducerWriter implements ISwitchProducerWriter {
 			while (list.hasNext()){
 			    Reference ref = list.next();
 			    Referencable refObj = ref.parent();
-			    System.out.println("trying refObj "+refObj.name());
 			    String modStr = new String();
 			    if(refObj instanceof ModuleInstance){
 			
 				try {
 				    modStr=converterEngine.getModuleWriter().toString((ModuleInstance)refObj,indent);
 				} catch (ConverterException e) {
-				    System.out.println("error for refObj "+refObj.name()+" "+e.getMessage());
 				    modStr=e.getMessage();
 				}
 			    }else if(refObj instanceof EDAliasInstance){
 				try {
 				    modStr=converterEngine.getEDAliasWriter().toString((EDAliasInstance)refObj,indent);
 				} catch (ConverterException e) {
-				    System.out.println("error for refObj "+refObj.name()+" "+e.getMessage());
 				    modStr=e.getMessage();
 				}
 			    }	
